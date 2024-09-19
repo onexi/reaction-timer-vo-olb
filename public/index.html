@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction Time</title>
+</head>
+<body>
+    <h1>Add a Reaction Time</h1>
+    <h3>Instructions:</h3>
+    <ul>
+        <li>Type in your name and click the blue "Start" button to begin the test. </li>
+        <li>Click the "Stop" button when you see it changes color from red to green within several seconds. </li>
+        <li>If you click the "Stop" button too early, your recored time will be penalized (added 1 second for each time). </li>
+    </ul>
+    <br>
+    <form id="dataForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required />
+        <button id="startButton" type="button" style="background-color: blue; color: white;">Start</button>
+        <button id="stopButton" type="button" disabled style="display: none; background-color: red; color: white;">Stop</button>
+    <br>
+    <h3>Record List:</h3>
+    <table id="reactionTimeTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Reaction Time (s)</th>
+                <th>Penalty</th>
+                <th>Total Time (s)</th>
+            </tr>
+        </thead>
+        <tbody id="reactionTimeList">
+            <!-- Data will be inserted here -->
+        </tbody>
+    </table>
+
+    <script>
+        let startTime, endTime, reactionTime, penalty;
+        let timeStarted = false;
+        document.getElementById('startButton').addEventListener('click', (event) => {
+            event.preventDefault();
+
+            // Change the button style and availability
+            const button = event.target;
+            button.style.backgroundColor = 'gray';
+            button.disabled = true;
+            document.getElementById('stopButton').style.display = 'inline';
+            document.getElementById('stopButton').disabled = false;
+
+            // Wait for a random time between 1 to 3 seconds and reset the penalty
+            let delay = Math.floor(Math.random() * 2000) + 1000;
+            penalty = 0;
+
+            // Change the stop button color to green and start the timer after the delay
+            setTimeout(() => {
+                document.getElementById('stopButton').style.backgroundColor = 'green';
+                startTime = new Date();
+                timeStarted = true;
+            }, delay);
+        });
+
+        document.getElementById('stopButton').addEventListener('click', () => {
+            if (!timeStarted) {
+                penalty++;
+                return;
+            }
+
+            endTime = new Date();
+            reactionTime = endTime - startTime;
+
+            // Send data using fetch
+            fetch('/input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({  name: document.getElementById('name').value, 
+                                        reactionTime: reactionTime, 
+                                        penalty: penalty }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    // Clear the current list
+                    const reactionTimeList = document.getElementById('reactionTimeList');
+                    reactionTimeList.innerHTML = '';
+
+                    // Populate the list with updated reaction times
+                    data.forEach((reaction) => {
+                        const row = document.createElement('tr');
+
+                        reaction.reactionTime = parseFloat((reaction.reactionTime / 1000).toFixed(3));
+                        reaction.penalty = parseInt(reaction.penalty);
+
+                        row.innerHTML = `
+                            <td>${reaction.name}</td>
+                            <td>${reaction.reactionTime}</td>
+                            <td>${reaction.penalty}</td>
+                            <td>${reaction.reactionTime + reaction.penalty}</td>
+                        `;
+                        reactionTimeList.appendChild(row);
+                    });
+
+                    // Clear the form inputs
+                    document.getElementById('name').value = '';
+
+                    // Change the button style and availability
+                    const button = document.getElementById('startButton');
+                    button.style.backgroundColor = 'blue';
+                    button.disabled = false;
+                    document.getElementById('stopButton').style.display = 'none';
+                    document.getElementById('stopButton').style.backgroundColor = 'red';
+                    document.getElementById('stopButton').disabled = true;
+
+                    // Reset the timer
+                    timeStarted = false;
+                })
+                .catch((error) => console.error('Error:', error));
+        });
+    </script>
+</body>
