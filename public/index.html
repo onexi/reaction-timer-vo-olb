@@ -36,8 +36,29 @@
     </table>
 
     <script>
+        // Function to update the list of reaction times
+        function updateList(data) {
+            const reactionTimeList = document.getElementById('reactionTimeList');
+            reactionTimeList.innerHTML = '';
+            data.forEach((reaction) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${reaction.name}</td>
+                    <td>${reaction.reactionTime}</td>
+                    <td>${reaction.penalty}</td>
+                    <td>${reaction.totalTime}</td>
+                `;
+                reactionTimeList.appendChild(row);
+            });
+        }
+
+        // Fetch the data from the server so that the list persists after refreshing
+        fetch('/new').then((response) => response.json())
+            .then((data) => updateList(data));
+        
         let startTime, endTime, reactionTime, penalty;
         let timeStarted = false;
+
         document.getElementById('startButton').addEventListener('click', (event) => {
             event.preventDefault();
 
@@ -61,6 +82,7 @@
         });
 
         document.getElementById('stopButton').addEventListener('click', () => {
+            // If the user clicks the stop button before the test starts, add a penalty
             if (!timeStarted) {
                 penalty++;
                 return;
@@ -81,25 +103,7 @@
             })
                 .then((response) => response.json())
                 .then((data) => {
-                    // Clear the current list
-                    const reactionTimeList = document.getElementById('reactionTimeList');
-                    reactionTimeList.innerHTML = '';
-
-                    // Populate the list with updated reaction times
-                    data.forEach((reaction) => {
-                        const row = document.createElement('tr');
-
-                        reaction.reactionTime = parseFloat((reaction.reactionTime / 1000).toFixed(3));
-                        reaction.penalty = parseInt(reaction.penalty);
-
-                        row.innerHTML = `
-                            <td>${reaction.name}</td>
-                            <td>${reaction.reactionTime}</td>
-                            <td>${reaction.penalty}</td>
-                            <td>${reaction.reactionTime + reaction.penalty}</td>
-                        `;
-                        reactionTimeList.appendChild(row);
-                    });
+                    updateList(data);
 
                     // Clear the form inputs
                     document.getElementById('name').value = '';
